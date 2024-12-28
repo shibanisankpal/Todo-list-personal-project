@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 conn = sqlite3.connect('todo.db', check_same_thread=False)
 cursor = conn.cursor()
 
+# Drop the existing table if it exists (only for development; comment this out in production)
+cursor.execute('DROP TABLE IF EXISTS tasks')
+
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

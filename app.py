@@ -6,10 +6,6 @@ from datetime import datetime, timedelta
 conn = sqlite3.connect('todo.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Drop the existing table if it exists (only for development; comment this out in production)
-cursor.execute('DROP TABLE IF EXISTS tasks')
-
-# Create the updated tasks table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +18,6 @@ CREATE TABLE IF NOT EXISTS tasks (
 )
 ''')
 conn.commit()
-
 
 # Function to add a task
 def add_task(title, description, category, due_date):
@@ -70,9 +65,8 @@ with st.form("Add Task"):
         if title.strip():
             add_task(title, description, category, due_date)
             st.success("Task added successfully!")
-            # Use session state to trigger UI update
-            if "refresh" not in st.session_state:
-                st.session_state.refresh = True
+            # Update session state to reflect changes
+            st.session_state["tasks_updated"] = True
         else:
             st.error("Task title cannot be empty.")
 
@@ -99,21 +93,19 @@ if tasks:
                     if task[4] == "Pending":
                         if cols[1].button(f"✅ Complete {task[0]}"):
                             update_task_status(task[0], "Completed")
-                            if "refresh" not in st.session_state:
-                                st.session_state.refresh = True
+                            st.session_state["tasks_updated"] = True
                     else:
                         cols[1].write("✔️ Completed")
 
                     if cols[2].button(f"🗑️ Delete {task[0]}"):
                         delete_task(task[0])
-                        if "refresh" not in st.session_state:
-                            st.session_state.refresh = True
+                        st.session_state["tasks_updated"] = True
         else:
             st.write("No tasks for this day.")
 else:
     st.info("No tasks found for the upcoming week. Add some tasks to see them here!")
 
-# Handle refresh
-if "refresh" in st.session_state and st.session_state.refresh:
-    st.session_state.refresh = False
-    st.experimental_rerun()  # Re-run only when required
+# Refresh tasks if updated
+if "tasks_updated" in st.session_state and st.session_state["tasks_updated"]:
+    st.session_state["tasks_updated"] = False
+    st.experimental_rerun()  # Trigger a refresh only when needed

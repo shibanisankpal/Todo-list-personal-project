@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 conn = sqlite3.connect('todo.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Create tasks table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,63 +21,53 @@ conn.commit()
 
 # Function to add a task
 def add_task(title, description, category, due_date):
-    conn = sqlite3.connect('todo.db', check_same_thread=False)
-    cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO tasks (title, description, category, due_date)
         VALUES (?, ?, ?, ?)
     ''', (title, description, category, due_date.strftime('%Y-%m-%d')))
     conn.commit()
-    conn.close()
 
 # Function to get tasks for a date range
 def get_tasks_by_date_range(start_date, end_date):
-    conn = sqlite3.connect('todo.db', check_same_thread=False)
-    cursor = conn.cursor()
     cursor.execute('''
         SELECT * FROM tasks
         WHERE due_date BETWEEN ? AND ?
         ORDER BY due_date ASC, created_at DESC
     ''', (start_date, end_date))
-    tasks = cursor.fetchall()
-    conn.close()
-    return tasks
+    return cursor.fetchall()
 
 # Function to update task status
 def update_task_status(task_id, new_status):
-    conn = sqlite3.connect('todo.db', check_same_thread=False)
-    cursor = conn.cursor()
     cursor.execute('''
         UPDATE tasks SET status = ? WHERE id = ?
     ''', (new_status, task_id))
     conn.commit()
-    conn.close()
 
 # Function to delete a task
 def delete_task(task_id):
-    conn = sqlite3.connect('todo.db', check_same_thread=False)
-    cursor = conn.cursor()
     cursor.execute('''
         DELETE FROM tasks WHERE id = ?
     ''', (task_id,))
     conn.commit()
-    conn.close()
 
 # Streamlit app
 st.title("📋 To-Do List App")
 
 # Task creation form
 with st.form("Add Task"):
-    title = st.text_input("Task Title")
-    description = st.text_area("Description")
+    title = st.text_input("Task Title", value="")
+    description = st.text_area("Description", value="")
     category = st.selectbox("Category", ["Work", "Personal", "Shopping", "Others"])
-    due_date = st.date_input("Due Date")
+    due_date = st.date_input("Due Date", min_value=datetime.today().date())
     submitted = st.form_submit_button("Add Task")
+    
     if submitted:
         if title.strip():
             add_task(title, description, category, due_date)
             st.success("Task added successfully!")
-            st.experimental_rerun()
+            # Use session state to trigger UI update
+            if "refresh" not in st.session_state:
+                st.session_state.refresh = True
         else:
             st.error("Task title cannot be empty.")
 
@@ -103,19 +92,23 @@ if tasks:
                     cols[0].markdown(f"🟢 Status: {task[4]}")
 
                     if task[4] == "Pending":
-                        if cols[1].button("✅ Complete", key=f"complete_{task[0]}"):
+                        if cols[1].button(f"✅ Complete {task[0]}"):
                             update_task_status(task[0], "Completed")
-                            st.experimental_rerun()
+                            if "refresh" not in st.session_state:
+                                st.session_state.refresh = True
                     else:
                         cols[1].write("✔️ Completed")
 
-                    if cols[2].button("🗑️ Delete", key=f"delete_{task[0]}"):
+                    if cols[2].button(f"🗑️ Delete {task[0]}"):
                         delete_task(task[0])
-                        st.experimental_rerun()
+                        if "refresh" not in st.session_state:
+                            st.session_state.refresh = True
         else:
             st.write("No tasks for this day.")
 else:
     st.info("No tasks found for the upcoming week. Add some tasks to see them here!")
 
-# Footer
-st.write("Built with ❤️ using Streamlit")
+# Handle refresh
+if "refresh" in st.session_state and st.session_state.refresh:
+    st.session_state.refresh = False
+    st.experimental_rerun()  # Re-run only when required

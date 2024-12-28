@@ -109,4 +109,4 @@ else:
 # Refresh tasks if updated
 if "tasks_updated" in st.session_state and st.session_state["tasks_updated"]:
     st.session_state["tasks_updated"] = False
-    st.experimental_rerun()  # Trigger a refresh only when needed
+    #st.experimental_rerun()  # Trigger a refresh only when needed

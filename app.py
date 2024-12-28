@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 conn = sqlite3.connect('todo.db', check_same_thread=False)
 cursor = conn.cursor()
 
+# Drop the existing table if it exists (only for development; comment this out in production)
+cursor.execute('DROP TABLE IF EXISTS tasks')
+
+# Create the updated tasks table
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tasks (
 )
 ''')
 conn.commit()
+
 
 # Function to add a task
 def add_task(title, description, category, due_date):
